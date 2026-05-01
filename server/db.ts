@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, geolocationPages, InsertGeolocationPage } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -87,6 +87,76 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllGeolocationPages() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get pages: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(geolocationPages);
+  } catch (error) {
+    console.error("[Database] Failed to get geolocation pages:", error);
+    throw error;
+  }
+}
+
+export async function getGeolocationPagesByState(state: "MA" | "CT") {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get pages: database not available");
+    return [];
+  }
+
+  try {
+    return await db
+      .select()
+      .from(geolocationPages)
+      .where(eq(geolocationPages.state, state));
+  } catch (error) {
+    console.error("[Database] Failed to get pages by state:", error);
+    throw error;
+  }
+}
+
+export async function updateGeolocationPageStatus(
+  pageId: number,
+  status: "active" | "pending"
+): Promise<any> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update page: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db
+      .update(geolocationPages)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(geolocationPages.id, pageId));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update page status:", error);
+    throw error;
+  }
+}
+
+export async function seedGeolocationPages(pages: InsertGeolocationPage[]) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot seed pages: database not available");
+    return;
+  }
+
+  try {
+    await db.insert(geolocationPages).values(pages);
+  } catch (error) {
+    console.error("[Database] Failed to seed pages:", error);
+    throw error;
+  }
 }
 
 // TODO: add feature queries here as your schema grows.

@@ -25,4 +25,15 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+export const geolocationPages = mysqlTable("geolocation_pages", {
+  id: int("id").autoincrement().primaryKey(),
+  city: varchar("city", { length: 100 }).notNull(),
+  state: varchar("state", { length: 2 }).notNull(), // "MA" or "CT"
+  status: mysqlEnum("status", ["active", "pending"]).default("pending").notNull(),
+  url: varchar("url", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GeolocationPage = typeof geolocationPages.$inferSelect;
+export type InsertGeolocationPage = typeof geolocationPages.$inferInsert;
