@@ -52,3 +52,11 @@
 - [x] Verificar visualmente no navegador (37 portais com dados corretos)
 - [x] Todos os 18 testes passando
 - [x] Salvar checkpoint
+
+## Phase 8: Atualização das Páginas Geolocalizadas via PDF
+- [x] Extrair lista de 57 cidades do PDF (46 MA + 11 NH)
+- [x] Verificar quais cidades já possuem páginas no site art7epoxy.com (padrão: /garage-floor-coating-in-{city}-{state}/)
+- [x] Atualizar banco de dados com status correto (43 Ativas / 14 Pendentes)
+- [x] Sincronizar lista do dashboard com cidades do PDF (substituiu MA/CT por MA/NH)
+- [x] Atualizar testes vitest (18/18 passando)
+- [x] Salvar checkpoint

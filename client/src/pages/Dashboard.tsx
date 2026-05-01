@@ -79,7 +79,7 @@ function GeoTab() {
   const updateStatusMutation = trpc.geolocation.updateStatus.useMutation({ onSuccess: () => refetch() });
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [stateFilter, setStateFilter] = useState<"all" | "MA" | "CT">("all");
+  const [stateFilter, setStateFilter] = useState<"all" | "MA" | "NH">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "pending">("all");
 
   const filteredPages = useMemo(() => {
@@ -97,10 +97,10 @@ function GeoTab() {
       if (!grouped[page.state]) grouped[page.state] = [];
       grouped[page.state].push(page);
     });
-    // Sort states: MA first, then CT
+    // Sort states: MA first, then NH
     const sorted: Record<string, typeof pages> = {};
     if (grouped["MA"]) sorted["MA"] = grouped["MA"];
-    if (grouped["CT"]) sorted["CT"] = grouped["CT"];
+    if (grouped["NH"]) sorted["NH"] = grouped["NH"];
     return sorted;
   }, [filteredPages]);
 
@@ -148,7 +148,7 @@ function GeoTab() {
               <SelectContent>
                 <SelectItem value="all">Todos os Estados</SelectItem>
                 <SelectItem value="MA">Massachusetts</SelectItem>
-                <SelectItem value="CT">Connecticut</SelectItem>
+                <SelectItem value="NH">New Hampshire</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
@@ -171,7 +171,7 @@ function GeoTab() {
           <CardHeader className="border-b border-accent/20 py-4">
             <CardTitle className="flex items-center gap-2 text-accent text-base">
               <MapPin className="w-4 h-4" />
-              {state === "MA" ? "Massachusetts" : "Connecticut"}
+              {state === "MA" ? "Massachusetts" : "New Hampshire"}
               <span className="text-muted-foreground text-sm font-normal ml-1">({statePages.length} cidades)</span>
             </CardTitle>
           </CardHeader>

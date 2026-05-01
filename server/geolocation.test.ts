@@ -29,7 +29,7 @@ describe("geolocation procedures", () => {
 
       expect(Array.isArray(pages)).toBe(true);
       expect(pages.length).toBeGreaterThan(0);
-      expect(pages.length).toBe(99); // 50 MA + 49 CT
+      expect(pages.length).toBe(57); // 46 MA + 11 NH
     });
 
     it("should have correct page structure", async () => {
@@ -48,7 +48,7 @@ describe("geolocation procedures", () => {
       const pages = await caller.geolocation.list();
 
       pages.forEach((page) => {
-        expect(["MA", "CT"]).toContain(page.state);
+        expect(["MA", "NH"]).toContain(page.state);
       });
     });
 
@@ -73,23 +73,23 @@ describe("geolocation procedures", () => {
       });
     });
 
-    it("should return only Connecticut pages", async () => {
-      const pages = await caller.geolocation.listByState({ state: "CT" });
+    it("should return only New Hampshire pages", async () => {
+      const pages = await caller.geolocation.listByState({ state: "NH" });
 
       expect(Array.isArray(pages)).toBe(true);
       expect(pages.length).toBeGreaterThan(0);
 
       pages.forEach((page) => {
-        expect(page.state).toBe("CT");
+        expect(page.state).toBe("NH");
       });
     });
 
     it("should return correct number of pages per state", async () => {
       const maPages = await caller.geolocation.listByState({ state: "MA" });
-      const ctPages = await caller.geolocation.listByState({ state: "CT" });
+      const nhPages = await caller.geolocation.listByState({ state: "NH" });
 
-      expect(maPages.length).toBe(50);
-      expect(ctPages.length).toBe(49);
+      expect(maPages.length).toBe(46);
+      expect(nhPages.length).toBe(11);
     });
   });
 
@@ -146,14 +146,14 @@ describe("geolocation procedures", () => {
   });
 
   describe("data consistency", () => {
-    it("should have all cities from MA and CT", async () => {
+    it("should have all cities from MA and NH", async () => {
       const pages = await caller.geolocation.list();
 
       const cities = pages.map((p) => p.city);
-      const uniqueCities = new Set(cities);
+      const uniqueCities = new Set(cities.map((c, i) => `${c}-${pages[i].state}`));
 
-      expect(uniqueCities.size).toBeGreaterThanOrEqual(95);
-      expect(pages.length).toBeGreaterThanOrEqual(95);
+      expect(uniqueCities.size).toBe(57);
+      expect(pages.length).toBe(57);
     });
 
     it("should not have duplicate cities", async () => {
