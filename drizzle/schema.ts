@@ -37,3 +37,21 @@ export const geolocationPages = mysqlTable("geolocation_pages", {
 
 export type GeolocationPage = typeof geolocationPages.$inferSelect;
 export type InsertGeolocationPage = typeof geolocationPages.$inferInsert;
+
+export const listingPortals = mysqlTable("listing_portals", {
+  id: int("id").autoincrement().primaryKey(),
+  priority: int("priority").notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }).notNull(),
+  isPaid: varchar("isPaid", { length: 50 }).notNull(), // "Não", "Opcional", "Sim", "Não identificado"
+  paidPlanInfo: text("paidPlanInfo"),
+  smsVerification: varchar("smsVerification", { length: 50 }).notNull(), // "Não", "Pode solicitar", "Não identificado"
+  status: mysqlEnum("portalStatus", ["not_started", "in_progress", "completed"]).default("not_started").notNull(),
+  portalUrl: varchar("portalUrl", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ListingPortal = typeof listingPortals.$inferSelect;
+export type InsertListingPortal = typeof listingPortals.$inferInsert;

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, geolocationPages, InsertGeolocationPage } from "../drizzle/schema";
+import { InsertUser, users, geolocationPages, InsertGeolocationPage, listingPortals } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -159,4 +159,38 @@ export async function seedGeolocationPages(pages: InsertGeolocationPage[]) {
   }
 }
 
-// TODO: add feature queries here as your schema grows.
+// Listing Portals helpers
+export async function getAllListingPortals() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get portals: database not available");
+    return [];
+  }
+  try {
+    return await db.select().from(listingPortals);
+  } catch (error) {
+    console.error("[Database] Failed to get listing portals:", error);
+    throw error;
+  }
+}
+
+export async function updateListingPortalStatus(
+  portalId: number,
+  status: "not_started" | "in_progress" | "completed"
+): Promise<any> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update portal: database not available");
+    return null;
+  }
+  try {
+    const result = await db
+      .update(listingPortals)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(listingPortals.id, portalId));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update portal status:", error);
+    throw error;
+  }
+}

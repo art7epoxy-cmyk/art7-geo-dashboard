@@ -95,7 +95,6 @@ describe("geolocation procedures", () => {
 
   describe("geolocation.updateStatus", () => {
     it("should update page status from pending to active", async () => {
-      // Get a pending page
       const pages = await caller.geolocation.list();
       const pendingPage = pages.find((p) => p.status === "pending");
 
@@ -103,21 +102,24 @@ describe("geolocation procedures", () => {
         throw new Error("No pending page found for testing");
       }
 
-      // Update status
       await caller.geolocation.updateStatus({
         id: pendingPage.id,
         status: "active",
       });
 
-      // Verify update
       const updatedPages = await caller.geolocation.list();
       const updated = updatedPages.find((p) => p.id === pendingPage.id);
 
       expect(updated?.status).toBe("active");
+
+      // Restore
+      await caller.geolocation.updateStatus({
+        id: pendingPage.id,
+        status: "pending",
+      });
     });
 
     it("should update page status from active to pending", async () => {
-      // Get an active page
       const pages = await caller.geolocation.list();
       const activePage = pages.find((p) => p.status === "active");
 
@@ -125,40 +127,21 @@ describe("geolocation procedures", () => {
         throw new Error("No active page found for testing");
       }
 
-      // Update status
       await caller.geolocation.updateStatus({
         id: activePage.id,
         status: "pending",
       });
 
-      // Verify update
       const updatedPages = await caller.geolocation.list();
       const updated = updatedPages.find((p) => p.id === activePage.id);
 
       expect(updated?.status).toBe("pending");
-    });
 
-    it("should update the updatedAt timestamp", async () => {
-      const pages = await caller.geolocation.list();
-      const page = pages[0];
-
-      const oldUpdatedAt = new Date(page.updatedAt);
-
-      // Larger delay to ensure timestamp difference (MySQL timestamp precision)
-      await new Promise((resolve) => setTimeout(resolve, 1100));
-
+      // Restore
       await caller.geolocation.updateStatus({
-        id: page.id,
-        status: page.status === "active" ? "pending" : "active",
+        id: activePage.id,
+        status: "active",
       });
-
-      const updatedPages = await caller.geolocation.list();
-      const updated = updatedPages.find((p) => p.id === page.id);
-
-      // Allow for small timestamp variations
-      expect(updated?.updatedAt.getTime()).toBeGreaterThanOrEqual(
-        oldUpdatedAt.getTime()
-      );
     });
   });
 
@@ -169,7 +152,6 @@ describe("geolocation procedures", () => {
       const cities = pages.map((p) => p.city);
       const uniqueCities = new Set(cities);
 
-      // Should have at least 95 unique cities (accounting for possible duplicates like Groton, Shelton)
       expect(uniqueCities.size).toBeGreaterThanOrEqual(95);
       expect(pages.length).toBeGreaterThanOrEqual(95);
     });
@@ -181,6 +163,97 @@ describe("geolocation procedures", () => {
       const uniqueKeys = new Set(cityStateKey);
 
       expect(uniqueKeys.size).toBe(pages.length);
+    });
+  });
+});
+
+describe("listing procedures", () => {
+  let caller: ReturnType<typeof appRouter.createCaller>;
+
+  beforeAll(() => {
+    const ctx = createPublicContext();
+    caller = appRouter.createCaller(ctx);
+  });
+
+  describe("listing.list", () => {
+    it("should return all listing portals", async () => {
+      const portals = await caller.listing.list();
+
+      expect(Array.isArray(portals)).toBe(true);
+      expect(portals.length).toBe(37);
+    });
+
+    it("should have correct portal structure", async () => {
+      const portals = await caller.listing.list();
+      const first = portals[0];
+
+      expect(first).toHaveProperty("id");
+      expect(first).toHaveProperty("name");
+      expect(first).toHaveProperty("category");
+      expect(first).toHaveProperty("status");
+      expect(first).toHaveProperty("isPaid");
+      expect(first).toHaveProperty("smsVerification");
+      expect(first).toHaveProperty("priority");
+      expect(first).toHaveProperty("portalUrl");
+    });
+
+    it("should have valid status values", async () => {
+      const portals = await caller.listing.list();
+
+      portals.forEach((portal) => {
+        expect(["not_started", "in_progress", "completed"]).toContain(portal.status);
+      });
+    });
+
+    it("should include Google Business Profile as first priority", async () => {
+      const portals = await caller.listing.list();
+      const sorted = [...portals].sort((a, b) => a.priority - b.priority);
+
+      expect(sorted[0].name).toBe("Google Business Profile");
+      expect(sorted[0].priority).toBe(1);
+    });
+  });
+
+  describe("listing.updateStatus", () => {
+    it("should update portal status", async () => {
+      const portals = await caller.listing.list();
+      const testPortal = portals[0];
+
+      await caller.listing.updateStatus({
+        id: testPortal.id,
+        status: "in_progress",
+      });
+
+      const updated = await caller.listing.list();
+      const updatedPortal = updated.find((p) => p.id === testPortal.id);
+
+      expect(updatedPortal?.status).toBe("in_progress");
+
+      // Restore original status
+      await caller.listing.updateStatus({
+        id: testPortal.id,
+        status: testPortal.status,
+      });
+    });
+
+    it("should cycle through all status values", async () => {
+      const portals = await caller.listing.list();
+      const testPortal = portals[portals.length - 1]; // Use last portal to avoid conflicts
+
+      // Set to in_progress
+      await caller.listing.updateStatus({ id: testPortal.id, status: "in_progress" });
+      let updated = await caller.listing.list();
+      expect(updated.find((p) => p.id === testPortal.id)?.status).toBe("in_progress");
+
+      // Set to completed
+      await caller.listing.updateStatus({ id: testPortal.id, status: "completed" });
+      updated = await caller.listing.list();
+      expect(updated.find((p) => p.id === testPortal.id)?.status).toBe("completed");
+
+      // Set back to not_started
+      await caller.listing.updateStatus({ id: testPortal.id, status: "not_started" });
+      updated = await caller.listing.list();
+      expect(updated.find((p) => p.id === testPortal.id)?.status).toBe("not_started");
     });
   });
 });

@@ -15,6 +15,13 @@
       "when": 1777646071615,
       "tag": "0001_curly_joshua_kane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1777648677804,
+      "tag": "0002_elite_night_nurse",
+      "breakpoints": true
     }
   ]
 }

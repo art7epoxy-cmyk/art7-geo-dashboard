@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { getAllGeolocationPages, getGeolocationPagesByState, updateGeolocationPageStatus } from "./db";
+import { getAllGeolocationPages, getGeolocationPagesByState, updateGeolocationPageStatus, getAllListingPortals, updateListingPortalStatus } from "./db";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -26,7 +26,14 @@ export const appRouter = router({
     updateStatus: publicProcedure
       .input((input: any) => ({ id: input.id, status: input.status as "active" | "pending" }))
       .mutation(({ input }) => updateGeolocationPageStatus(input.id, input.status)),
-  })
+  }),
+
+  listing: router({
+    list: publicProcedure.query(() => getAllListingPortals()),
+    updateStatus: publicProcedure
+      .input((input: any) => ({ id: input.id, status: input.status as "not_started" | "in_progress" | "completed" }))
+      .mutation(({ input }) => updateListingPortalStatus(input.id, input.status)),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
