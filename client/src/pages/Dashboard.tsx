@@ -363,6 +363,7 @@ function ListingTab() {
                   <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">Portal</th>
                   <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">Categoria</th>
                   <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-24">Pago?</th>
+                  <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">Plano</th>
                   <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-28">SMS/Ligação</th>
                   <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-36">Status</th>
                   <th className="text-center py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-16">Link</th>
@@ -388,6 +389,11 @@ function ListingTab() {
                         }`}>
                           {portal.isPaid}
                         </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-xs text-muted-foreground">
+                          {portal.paidPlanInfo || "—"}
+                        </span>
                       </td>
                       <td className="py-3 px-4">
                         <span className={`text-xs ${
@@ -457,6 +463,12 @@ function ListingTab() {
                     </Badge>
                     <span className="text-[10px] text-muted-foreground">SMS: {portal.smsVerification}</span>
                   </div>
+                  {portal.paidPlanInfo && portal.paidPlanInfo !== "N/A" && (
+                    <p className="text-[11px] text-muted-foreground italic">Plano: {portal.paidPlanInfo}</p>
+                  )}
+                  {portal.description && (
+                    <p className="text-[11px] text-muted-foreground/70 line-clamp-2">{portal.description}</p>
+                  )}
                   <button
                     onClick={() => updateStatusMutation.mutate({ id: portal.id, status: nextStatus(portal.status) as any })}
                     disabled={updateStatusMutation.isPending}

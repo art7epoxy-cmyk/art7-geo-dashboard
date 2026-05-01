@@ -43,3 +43,12 @@
 - [x] Corrigir bug de rota vazia que impedia renderização
 - [x] Testar alternância entre abas e funcionalidades (18 testes passando)
 - [x] Salvar checkpoint e entregar ao usuário
+
+## Phase 7: Atualização dos Dados de Listing via CSV
+- [x] Analisar CSV e comparar com schema atual
+- [x] Atualizar dados dos 37 portais com informações completas do CSV
+- [x] Adicionar coluna Plano na tabela desktop (paidPlanInfo)
+- [x] Adicionar observações nos cards mobile
+- [x] Verificar visualmente no navegador (37 portais com dados corretos)
+- [x] Todos os 18 testes passando
+- [x] Salvar checkpoint
