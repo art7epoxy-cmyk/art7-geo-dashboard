@@ -60,3 +60,10 @@
 - [x] Sincronizar lista do dashboard com cidades do PDF (substituiu MA/CT por MA/NH)
 - [x] Atualizar testes vitest (18/18 passando)
 - [x] Salvar checkpoint
+
+## Phase 9: Reconfiguração para Cidades Premium
+- [x] Reduzir para 36 cidades premium (31 MA + 5 NH)
+- [x] Marcar apenas Wellesley, MA como ativa (3% de progresso)
+- [x] Renumerar de 1 a 36 para acompanhamento de producao
+- [x] Atualizar testes vitest (18/18 passando)
+- [x] Verificar dashboard no navegador (36 cidades, 1 ativa, 35 pendentes)

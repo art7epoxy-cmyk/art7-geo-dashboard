@@ -29,7 +29,7 @@ describe("geolocation procedures", () => {
 
       expect(Array.isArray(pages)).toBe(true);
       expect(pages.length).toBeGreaterThan(0);
-      expect(pages.length).toBe(57); // 46 MA + 11 NH
+      expect(pages.length).toBe(36); // 26 MA + 10 NH (premium cities)
     });
 
     it("should have correct page structure", async () => {
@@ -88,8 +88,8 @@ describe("geolocation procedures", () => {
       const maPages = await caller.geolocation.listByState({ state: "MA" });
       const nhPages = await caller.geolocation.listByState({ state: "NH" });
 
-      expect(maPages.length).toBe(46);
-      expect(nhPages.length).toBe(11);
+      expect(maPages.length).toBe(31);
+      expect(nhPages.length).toBe(5);
     });
   });
 
@@ -152,8 +152,8 @@ describe("geolocation procedures", () => {
       const cities = pages.map((p) => p.city);
       const uniqueCities = new Set(cities.map((c, i) => `${c}-${pages[i].state}`));
 
-      expect(uniqueCities.size).toBe(57);
-      expect(pages.length).toBe(57);
+      expect(uniqueCities.size).toBe(36);
+      expect(pages.length).toBe(36);
     });
 
     it("should not have duplicate cities", async () => {
