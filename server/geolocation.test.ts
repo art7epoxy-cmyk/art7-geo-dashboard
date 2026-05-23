@@ -145,6 +145,67 @@ describe("geolocation procedures", () => {
     });
   });
 
+  describe("geolocation.updateUrl", () => {
+    it("should add URL to a page", async () => {
+      const pages = await caller.geolocation.list();
+      const testPage = pages.find((p) => p.city === "Wellesley");
+
+      if (!testPage) {
+        throw new Error("Wellesley page not found for testing");
+      }
+
+      const testUrl = "https://art7epoxy.com/garage-floor-coating-in-wellesley-ma/";
+      await caller.geolocation.updateUrl({
+        id: testPage.id,
+        url: testUrl,
+      });
+
+      const updatedPages = await caller.geolocation.list();
+      const updated = updatedPages.find((p) => p.id === testPage.id);
+
+      expect(updated?.url).toBe(testUrl);
+    });
+
+    it("should update existing URL", async () => {
+      const pages = await caller.geolocation.list();
+      const testPage = pages.find((p) => p.city === "Wellesley");
+
+      if (!testPage) {
+        throw new Error("Wellesley page not found for testing");
+      }
+
+      const newUrl = "https://art7epoxy.com/garage-floor-coating-in-wellesley-ma-2/";
+      await caller.geolocation.updateUrl({
+        id: testPage.id,
+        url: newUrl,
+      });
+
+      const updatedPages = await caller.geolocation.list();
+      const updated = updatedPages.find((p) => p.id === testPage.id);
+
+      expect(updated?.url).toBe(newUrl);
+    });
+
+    it("should clear URL by setting to null", async () => {  
+      const pages = await caller.geolocation.list();
+      const testPage = pages.find((p) => p.city === "Wellesley");
+
+      if (!testPage) {
+        throw new Error("Wellesley page not found for testing");
+      }
+
+      await caller.geolocation.updateUrl({
+        id: testPage.id,
+        url: null,
+      });
+
+      const updatedPages = await caller.geolocation.list();
+      const updated = updatedPages.find((p) => p.id === testPage.id);
+
+      expect(updated?.url).toBeNull();
+    });
+  });
+
   describe("data consistency", () => {
     it("should have all cities from MA and NH", async () => {
       const pages = await caller.geolocation.list();

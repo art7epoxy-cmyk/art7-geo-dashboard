@@ -1,3 +1,4 @@
+"use client";
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,10 +78,13 @@ function ProgressBar({ percentage, label }: { percentage: number; label: string 
 function GeoTab() {
   const { data: pages = [], isLoading, refetch } = trpc.geolocation.list.useQuery();
   const updateStatusMutation = trpc.geolocation.updateStatus.useMutation({ onSuccess: () => refetch() });
-
+  const updateUrlMutation = trpc.geolocation.updateUrl.useMutation({ onSuccess: () => refetch() });
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [stateFilter, setStateFilter] = useState<"all" | "MA" | "NH">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "pending">("all");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingUrl, setEditingUrl] = useState<string>("");
 
   const filteredPages = useMemo(() => {
     return pages.filter((page) => {
@@ -176,31 +180,83 @@ function GeoTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 pb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-2">
               {statePages.map((page) => (
                 <div
                   key={page.id}
-                  className="flex items-center justify-between p-3 border border-accent/15 rounded-sm bg-card/50 hover:bg-accent/5 transition-all duration-200 group"
+                  className="border border-accent/15 rounded-sm bg-card/50 hover:bg-accent/5 transition-all duration-200 group"
                 >
-                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <button
-                      onClick={() => updateStatusMutation.mutate({ id: page.id, status: page.status === "active" ? "pending" : "active" })}
-                      disabled={updateStatusMutation.isPending}
-                      className="flex-shrink-0 transition-all duration-200 hover:scale-110"
-                    >
-                      {page.status === "active"
-                        ? <CheckCircle2 className="w-5 h-5 text-accent" />
-                        : <Circle className="w-5 h-5 text-muted-foreground group-hover:text-accent/50" />
-                      }
-                    </button>
-                    <span className="font-semibold text-sm text-foreground truncate">{page.city}</span>
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <button
+                        onClick={() => updateStatusMutation.mutate({ id: page.id, status: page.status === "active" ? "pending" : "active" })}
+                        disabled={updateStatusMutation.isPending}
+                        className="flex-shrink-0 transition-all duration-200 hover:scale-110"
+                      >
+                        {page.status === "active"
+                          ? <CheckCircle2 className="w-5 h-5 text-accent" />
+                          : <Circle className="w-5 h-5 text-muted-foreground group-hover:text-accent/50" />
+                        }
+                      </button>
+                      <span className="font-semibold text-sm text-foreground truncate">{page.city}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {page.url && (
+                        <a href={page.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80 transition-colors">
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                      <Badge
+                        variant={page.status === "active" ? "default" : "secondary"}
+                        className="text-[10px] px-2 py-0.5"
+                      >
+                        {page.status === "active" ? "Ativa" : "Pendente"}
+                      </Badge>
+                    </div>
                   </div>
-                  <Badge
-                    variant={page.status === "active" ? "default" : "secondary"}
-                    className="ml-2 flex-shrink-0 text-[10px] px-2 py-0.5"
-                  >
-                    {page.status === "active" ? "Ativa" : "Pendente"}
-                  </Badge>
+                  {editingId === page.id ? (
+                    <div className="px-3 pb-3 border-t border-accent/10 flex gap-2">
+                      <Input
+                        value={editingUrl}
+                        onChange={(e) => setEditingUrl(e.target.value)}
+                        placeholder="https://art7epoxy.com/..."
+                        className="flex-1 h-8 text-xs bg-input border-border text-foreground"
+                      />
+                      <button
+                        onClick={() => {
+                          updateUrlMutation.mutate({ id: page.id, url: editingUrl || null });
+                          setEditingId(null);
+                        }}
+                        disabled={updateUrlMutation.isPending}
+                        className="px-2 py-1 bg-accent text-background text-xs font-bold rounded-sm hover:bg-accent/90 transition-colors"
+                      >
+                        Salvar
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="px-2 py-1 bg-muted text-muted-foreground text-xs font-bold rounded-sm hover:bg-muted/80 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="px-3 pb-3 border-t border-accent/10">
+                      {page.url ? (
+                        <p className="text-xs text-muted-foreground truncate mb-1">{page.url}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic mb-1">Sem URL adicionada</p>
+                      )}
+                      <button
+                        onClick={() => {
+                          setEditingId(page.id);
+                          setEditingUrl(page.url || "");
+                        }}
+                        className="text-xs text-accent hover:text-accent/80 transition-colors font-semibold"
+                      >
+                        {page.url ? "Editar URL" : "Adicionar URL"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -252,55 +308,28 @@ function ListingTab() {
     return { total, completed, inProgress, notStarted, free, percentage };
   }, [portals]);
 
-  const statusLabels: Record<string, string> = {
-    not_started: "Não iniciado",
-    in_progress: "Em andamento",
-    completed: "Cadastrado",
-  };
-
-  const nextStatus = (current: string) => {
-    if (current === "not_started") return "in_progress";
-    if (current === "in_progress") return "completed";
-    return "not_started";
-  };
-
-  const statusColors: Record<string, string> = {
-    not_started: "bg-muted text-muted-foreground",
-    in_progress: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    completed: "bg-accent/20 text-accent border-accent/30",
-  };
-
-  const statusIcons: Record<string, any> = {
-    not_started: Circle,
-    in_progress: Clock,
-    completed: CheckCircle2,
-  };
-
   if (isLoading) {
-    return <div className="flex items-center justify-center py-20"><div className="text-accent text-lg font-bold animate-pulse">Carregando portais...</div></div>;
+    return <div className="flex items-center justify-center py-20"><div className="text-accent text-lg font-bold animate-pulse">Carregando dados...</div></div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard label="Total Mapeados" value={stats.total} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Total de Portais" value={stats.total} />
         <StatCard label="Cadastrados" value={stats.completed} color="text-accent" />
-        <StatCard label="Em Andamento" value={stats.inProgress} color="text-yellow-400" />
-        <StatCard label="Pendentes" value={stats.notStarted} color="text-destructive" />
-        <StatCard label="Gratuitos" value={stats.free} color="text-accent" sub={`de ${stats.total} portais`} />
+        <StatCard label="Em Andamento" value={stats.inProgress} color="text-yellow-500" />
+        <StatCard label="Progresso" value={`${stats.percentage}%`} color="text-accent" />
       </div>
 
       <ProgressBar percentage={stats.percentage} label={`${stats.completed} de ${stats.total} portais cadastrados`} />
 
-      {/* Filters */}
       <Card className="blueprint-card">
         <CardContent className="pt-4 pb-4 px-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar portal, categoria..."
+                placeholder="Buscar portal..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-input border-border text-foreground placeholder:text-muted-foreground h-10"
@@ -311,22 +340,20 @@ function ListingTab() {
                 <SelectValue placeholder="Custo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os custos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="Não">Gratuito</SelectItem>
                 <SelectItem value="Opcional">Opcional</SelectItem>
                 <SelectItem value="Sim">Pago</SelectItem>
-                <SelectItem value="Não identificado">Não identificado</SelectItem>
               </SelectContent>
             </Select>
             <Select value={smsFilter} onValueChange={setSmsFilter}>
               <SelectTrigger className="bg-input border-border text-foreground h-10">
-                <SelectValue placeholder="SMS/Ligação" />
+                <SelectValue placeholder="SMS" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as verificações</SelectItem>
-                <SelectItem value="Não">Sem verificação</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="Não">Não</SelectItem>
                 <SelectItem value="Pode solicitar">Pode solicitar</SelectItem>
-                <SelectItem value="Não identificado">Não identificado</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -334,7 +361,7 @@ function ListingTab() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="not_started">Não iniciado</SelectItem>
                 <SelectItem value="in_progress">Em andamento</SelectItem>
                 <SelectItem value="completed">Cadastrado</SelectItem>
@@ -344,151 +371,59 @@ function ListingTab() {
         </CardContent>
       </Card>
 
-      {/* Portals Table */}
-      <Card className="blueprint-card overflow-hidden">
-        <CardHeader className="border-b border-accent/20 py-3 px-5">
-          <CardTitle className="flex items-center gap-2 text-accent text-sm">
-            <Layers className="w-4 h-4" />
-            Portais de Listing
-            <span className="text-muted-foreground font-normal ml-1">({filteredPortals.length} de {stats.total})</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {/* Desktop Table */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-accent/20 bg-muted/20">
-                  <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-12">#</th>
-                  <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">Portal</th>
-                  <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">Categoria</th>
-                  <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-24">Pago?</th>
-                  <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground">Plano</th>
-                  <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-28">SMS/Ligação</th>
-                  <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-36">Status</th>
-                  <th className="text-center py-3 px-4 text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground w-16">Link</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPortals.map((portal) => {
-                  const StatusIcon = statusIcons[portal.status];
-                  return (
-                    <tr key={portal.id} className="border-b border-accent/10 hover:bg-accent/5 transition-colors">
-                      <td className="py-3 px-4 text-muted-foreground font-mono text-xs">{portal.priority}</td>
-                      <td className="py-3 px-4">
-                        <p className="font-semibold text-foreground">{portal.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{portal.description}</p>
-                      </td>
-                      <td className="py-3 px-4 text-xs text-muted-foreground">{portal.category}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${
-                          portal.isPaid === "Não" ? "border-accent/30 text-accent" :
-                          portal.isPaid === "Sim" ? "border-destructive/30 text-destructive" :
-                          portal.isPaid === "Opcional" ? "border-yellow-500/30 text-yellow-400" :
-                          "border-muted text-muted-foreground"
-                        }`}>
-                          {portal.isPaid}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-xs text-muted-foreground">
-                          {portal.paidPlanInfo || "—"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`text-xs ${
-                          portal.smsVerification === "Pode solicitar" ? "text-yellow-400" :
-                          portal.smsVerification === "Não" ? "text-accent" : "text-muted-foreground"
-                        }`}>
-                          {portal.smsVerification}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() => updateStatusMutation.mutate({ id: portal.id, status: nextStatus(portal.status) as any })}
-                          disabled={updateStatusMutation.isPending}
-                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-sm border transition-all duration-200 hover:scale-105 ${statusColors[portal.status]}`}
-                        >
-                          <StatusIcon className="w-3.5 h-3.5" />
-                          {statusLabels[portal.status]}
-                        </button>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {portal.portalUrl && (
-                          <a
-                            href={portal.portalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-accent hover:text-accent/80 transition-colors"
-                          >
-                            <ExternalLink className="w-4 h-4 mx-auto" />
-                          </a>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="lg:hidden p-4 space-y-3">
-            {filteredPortals.map((portal) => {
-              const StatusIcon = statusIcons[portal.status];
-              return (
-                <div key={portal.id} className="border border-accent/15 rounded-sm p-4 bg-card/50 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground font-mono">#{portal.priority}</span>
-                        <p className="font-semibold text-foreground text-sm truncate">{portal.name}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{portal.category}</p>
-                    </div>
-                    {portal.portalUrl && (
-                      <a href={portal.portalUrl} target="_blank" rel="noopener noreferrer" className="text-accent flex-shrink-0">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    )}
+      <div className="space-y-3">
+        {filteredPortals.map((portal) => (
+          <Card key={portal.id} className="blueprint-card">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-bold text-sm text-foreground">{portal.name}</h3>
+                    <Badge variant="outline" className="text-[10px]">{portal.category}</Badge>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className={`text-[10px] ${
-                      portal.isPaid === "Não" ? "border-accent/30 text-accent" :
-                      portal.isPaid === "Sim" ? "border-destructive/30 text-destructive" :
-                      portal.isPaid === "Opcional" ? "border-yellow-500/30 text-yellow-400" :
-                      "border-muted text-muted-foreground"
-                    }`}>
-                      {portal.isPaid}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">SMS: {portal.smsVerification}</span>
+                  {portal.description && <p className="text-xs text-muted-foreground mb-2">{portal.description}</p>}
+                  {portal.paidPlanInfo && <p className="text-xs text-accent mb-2">💰 {portal.paidPlanInfo}</p>}
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    <span>Custo: {portal.isPaid}</span>
+                    <span>•</span>
+                    <span>SMS: {portal.smsVerification}</span>
                   </div>
-                  {portal.paidPlanInfo && portal.paidPlanInfo !== "N/A" && (
-                    <p className="text-[11px] text-muted-foreground italic">Plano: {portal.paidPlanInfo}</p>
-                  )}
-                  {portal.description && (
-                    <p className="text-[11px] text-muted-foreground/70 line-clamp-2">{portal.description}</p>
-                  )}
-                  <button
-                    onClick={() => updateStatusMutation.mutate({ id: portal.id, status: nextStatus(portal.status) as any })}
-                    disabled={updateStatusMutation.isPending}
-                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-sm border transition-all duration-200 w-full justify-center ${statusColors[portal.status]}`}
-                  >
-                    <StatusIcon className="w-3.5 h-3.5" />
-                    {statusLabels[portal.status]}
-                  </button>
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex flex-col items-end gap-2">
+                  <button
+                    onClick={() => {
+                      const nextStatus = portal.status === "not_started" ? "in_progress" : portal.status === "in_progress" ? "completed" : "not_started";
+                      updateStatusMutation.mutate({ id: portal.id, status: nextStatus });
+                    }}
+                    disabled={updateStatusMutation.isPending}
+                    className="transition-all duration-200"
+                  >
+                    {portal.status === "not_started" && <Circle className="w-5 h-5 text-muted-foreground hover:text-accent/50" />}
+                    {portal.status === "in_progress" && <Clock className="w-5 h-5 text-yellow-500" />}
+                    {portal.status === "completed" && <CheckCircle2 className="w-5 h-5 text-accent" />}
+                  </button>
+                  <Badge
+                    variant={portal.status === "completed" ? "default" : portal.status === "in_progress" ? "secondary" : "outline"}
+                    className="text-[10px]"
+                  >
+                    {portal.status === "not_started" && "Não iniciado"}
+                    {portal.status === "in_progress" && "Em andamento"}
+                    {portal.status === "completed" && "Cadastrado"}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-          {filteredPortals.length === 0 && (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground">Nenhum portal encontrado com os filtros selecionados.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {filteredPortals.length === 0 && (
+        <Card className="blueprint-card">
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">Nenhum portal encontrado com os filtros selecionados.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -498,25 +433,22 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"geo" | "listing">("geo");
 
   return (
-    <div className="min-h-screen bg-background relative z-1">
-      {/* Top Header */}
-      <div className="border-b border-accent/20 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          {/* Title Row */}
-          <div className="flex items-center justify-between py-4">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-accent/20 bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-sm bg-accent/20 border border-accent/30 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-sm border-2 border-accent flex items-center justify-center">
                 <Globe className="w-4 h-4 text-accent" />
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-foreground tracking-wide">ART 7 EPOXY</h1>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Painel de Controle</p>
-              </div>
+              <h1 className="text-lg font-bold text-foreground tracking-wide">ART 7 EPOXY</h1>
+              <p className="text-xs text-muted-foreground tracking-widest uppercase">PAINEL DE CONTROLE</p>
             </div>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="flex gap-0 -mb-px overflow-x-auto">
+          {/* Tabs */}
+          <div className="flex gap-0 border-b border-accent/10">
             <TabButton
               active={activeTab === "geo"}
               onClick={() => setActiveTab("geo")}
@@ -533,9 +465,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {activeTab === "geo" ? <GeoTab /> : <ListingTab />}
+      {/* Content */}
+      <div className="container mx-auto px-4 py-8">
+        {activeTab === "geo" && <GeoTab />}
+        {activeTab === "listing" && <ListingTab />}
       </div>
     </div>
   );

@@ -144,6 +144,28 @@ export async function updateGeolocationPageStatus(
   }
 }
 
+export async function updateGeolocationPageUrl(
+  pageId: number,
+  url: string | null
+): Promise<any> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update page: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db
+      .update(geolocationPages)
+      .set({ url: url || null, updatedAt: new Date() })
+      .where(eq(geolocationPages.id, pageId));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update page URL:", error);
+    throw error;
+  }
+}
+
 export async function seedGeolocationPages(pages: InsertGeolocationPage[]) {
   const db = await getDb();
   if (!db) {
